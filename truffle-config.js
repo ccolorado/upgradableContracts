@@ -25,7 +25,6 @@ const fs = require('fs');
 
 // mnemonic generated with "https://iancoleman.io/bip39/"
 const mnemonic = fs.readFileSync(".secret").toString().trim();
-console.log("mnemonic : ", mnemonic)
 
 module.exports = {
   /**

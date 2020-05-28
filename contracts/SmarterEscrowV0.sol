@@ -1,9 +1,9 @@
+
 pragma solidity ^0.6.0;
 
-// Original contract
-// https://www.codementor.io/@edzynda/code-an-escrow-smart-contract-in-solidity-14piv60xb6
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 
-contract Escrow {
+contract SmarterEscrowV0 is Initializable {
     enum State { AWAITING_PAYMENT, AWAITING_DELIVERY, COMPLETE }
 
     State public currState;
@@ -16,7 +16,7 @@ contract Escrow {
         _;
     }
 
-    constructor(address _buyer, address payable _seller) public {
+     function initialize(address _buyer, address payable _seller) public {
         buyer = _buyer;
         seller = _seller;
     }

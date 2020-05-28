@@ -1,13 +1,15 @@
 const Web3 = require('web3')
 
+const { TestHelper } = require('@openzeppelin/cli');
+const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
+
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
+ZWeb3.initialize(web3.currentProvider);
+
 const BigNumber = require('bignumber.js')
 
-const Escrow = artifacts.require('Escrow.sol')
-
-const EscrowContract = require(
-  '../build/contracts/Escrow.json'
-)
+const SmarterEscrow_V0 = Contracts.getFromLocal('SmarterEscrowV0')
+const SmarterEscrow_V1 = Contracts.getFromLocal('SmarterEscrowV1')
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -27,16 +29,16 @@ contract('Escrow Contract ', function (accounts) {
     this.balances.buyer = await web3.eth.getBalance(this.addr.buyer);
     this.balances.seller = await web3.eth.getBalance(this.addr.seller);
 
-    this.escrow = await Escrow.new(this.addr.buyer, this.addr.seller)
-    this.addr.escrow = this.escrow.address
+    this.project = await TestHelper();
 
-    this.CEscrow = await new web3.eth.Contract(
-      EscrowContract.abi, this.addr.escrow
+    this.CEscrow = await this.project.createProxy(
+      SmarterEscrow_V0,
+      {
+        initArgs: [this.addr.buyer, this.addr.seller]
+      }
     )
 
-    // console.log("this.addr : ", this.addr)
-    // console.log("this.balances : ", this.balances)
-
+    this.addr.v0 = this.CEscrow.address
   });
 
   describe('Escrow mechanism', async function () {
@@ -78,7 +80,6 @@ contract('Escrow Contract ', function (accounts) {
     })
 
   })
-
 
   describe('Escrow validations', async function () {
 
@@ -123,5 +124,24 @@ contract('Escrow Contract ', function (accounts) {
     })
 
   })
+
+  describe('Integrity Check', async function () {
+
+    it('should not recognize ejectFunds function', async function () {
+
+      try {
+        await this.CEscrow.methods.ejectFunds().send({
+          from: this.addr.owner
+        })
+      } catch (e) {
+
+        const hasTypeError = e.toString().includes("TypeError: this.CEscrow.methods.ejectFunds")
+        assert(hasTypeError, "Error is unrelated to ejectFunds not being a function")
+      }
+
+    })
+
+  });
+
 
 });
