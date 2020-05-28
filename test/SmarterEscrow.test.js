@@ -8,6 +8,12 @@ ZWeb3.initialize(web3.currentProvider);
 
 const BigNumber = require('bignumber.js')
 
+// const SmarterEscrowV0 = artifacts.require('SmarterEscrowV0.sol')
+
+// const EscrowContract = require(
+//   '../build/contracts/SmarterEscrowV0.json'
+// )
+
 const SmarterEscrow_V0 = Contracts.getFromLocal('SmarterEscrowV0')
 const SmarterEscrow_V1 = Contracts.getFromLocal('SmarterEscrowV1')
 
@@ -142,6 +148,66 @@ contract('Escrow Contract ', function (accounts) {
     })
 
   });
+
+
+  describe('upgraded contract', async function () {
+
+    beforeEach(async function () {
+
+      await this.CEscrow.methods.deposit().send({
+        from: this.addr.buyer,
+        value: web3.utils.toWei("1", "ether")
+      }).should.be.fulfilled
+
+      this.oldBalance  = await web3.eth.getBalance(this.addr.v0);
+
+      this.CEscrowUpgraded = await this.project.upgradeProxy(
+        this.CEscrow.address,
+        SmarterEscrow_V1
+      );
+
+    })
+
+    it('preserves contract address', async function () {
+      this.CEscrowUpgraded.address.should.be.equal(this.CEscrow.address)
+    })
+
+    it('preserves state', async function () {
+
+      const _newBuyer = await this.CEscrowUpgraded.methods.buyer().call()
+      const _newSeller = await this.CEscrowUpgraded.methods.seller().call()
+
+      _newBuyer.should.be.equal(this.addr.buyer)
+      _newSeller.should.be.equal(this.addr.seller)
+
+    })
+
+    it('preserves funds', async function () {
+      const _newBalance = await web3.eth.getBalance(this.CEscrowUpgraded.address);
+      _newBalance.should.be.equal(this.oldBalance)
+    })
+
+    it('can eject funds', async function () {
+
+      const _startBalance =  await web3.eth.getBalance(this.addr.buyer);
+
+      await this.CEscrowUpgraded.methods.ejectFunds().send({
+        from: this.addr.seller,
+      }).should.be.fulfilled
+
+      const _endBalance = await web3.eth.getBalance(this.addr.buyer);
+
+      const balanceDifference = BigNumber(_endBalance).minus(_startBalance);
+
+      // console.log("_startBalance : ", web3.utils.fromWei(_startBalance.toString(), "ether"))
+      // console.log("_endBalance : ", web3.utils.fromWei(_endBalance.toString(), "ether"))
+      // console.log("balanceDifference : ", balanceDifference)
+
+      _startBalance.should.be.bignumber.below(_endBalance)
+      balanceDifference.should.be.bignumber.equal(1000000000000000000)
+    })
+
+  })
 
 
 });
