@@ -32,7 +32,4 @@ contract Escrow {
         currState = State.COMPLETE;
     }
 
-    // function ejectFunds() onlyBuyer external {
-
-    // }
 }

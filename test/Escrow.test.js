@@ -79,4 +79,49 @@ contract('Escrow Contract ', function (accounts) {
 
   })
 
+
+  describe('Escrow validations', async function () {
+
+    it('prevent depositing twice', async function () {
+
+      await this.CEscrow.methods.deposit().send({
+        from: this.addr.buyer,
+        value: web3.utils.toWei("1", "ether")
+      }).should.be.fulfilled
+
+      await this.CEscrow.methods.deposit().send({
+        from: this.addr.buyer,
+      }).should.be.rejectedWith(
+        Error,
+        "Already paid"
+      )
+
+    })
+
+    it('not allow deposits from owner', async function () {
+
+      await this.CEscrow.methods.deposit().send({
+        from: this.addr.owner,
+        value: web3.utils.toWei("1", "ether")
+      }).should.be.rejectedWith(
+        Error,
+        "Only buyer can call this method"
+      )
+
+    })
+
+
+    it('not allow confirmDelivery from owner', async function () {
+
+      await this.CEscrow.methods.confirmDelivery().send({
+        from: this.addr.owner,
+      }).should.be.rejectedWith(
+        Error,
+        "Only buyer can call this method"
+      )
+
+    })
+
+  })
+
 });
